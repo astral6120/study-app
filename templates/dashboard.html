@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ホーム | テス勉お助け！</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4CAF50',
+                        'secondary': '#8BC34A',
+                        'accent': '#FFC107',
+                        'danger': '#F44336',
+                        'background': '#f4f4f4',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- アイコンライブラリ -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-background min-h-screen dark:bg-gray-900 transition-colors duration-300">
+    <!-- 共通ヘッダーのインクルード -->
+    {% include '_header.html' %}
+
+    <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- ユーザー情報セクション -->
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
+                    <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-cover bg-center border-4 border-accent" 
+                         style="background-image: url('{{ avatar_path }}');"></div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">{{ user.username }}</h2>
+                    <p class="text-gray-600 dark:text-gray-300">レベル <strong class="text-primary">{{ user.level }}</strong></p>
+                    
+                    <!-- レベルバー -->
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
+                            <span>{{ user.xp | int }} XP</span>
+                            <span>{{ user.xp_to_next }} XP</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
+                            {% set progress_percent = (user.xp / user.xp_to_next) * 100 if user.xp_to_next else 0 %}
+                            <div class="bg-primary h-4 rounded-full transition-all duration-500" 
+                                 style="width: {{ progress_percent | int }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">合計記録回数: {{ user.records_count }}</p>
+                    
+                    <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+                        <a href="{{ url_for('records') }}" class="block text-primary hover:text-secondary font-medium">
+                            <i class="ph-bold ph-warning-circle mr-2"></i>未復習ポイント
+                        </a>
+                        <a href="{{ url_for('level_history') }}" class="block text-primary hover:text-secondary font-medium">
+                            <i class="ph-bold ph-trophy mr-2"></i>レベルアップ履歴
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- カレンダーとフォームセクション -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- カレンダー -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">{{ calendar.year }}年 {{ calendar.month }}月</h3>
+                    </div>
+                    <div class="grid grid-cols-7 gap-2 text-center">
+                        {% set weekdays = ['日', '月', '火', '水', '木', '金', '土'] %}
+                        {% for day_label in weekdays %}
+                            <div class="font-bold text-gray-600 dark:text-gray-300 text-sm py-2">{{ day_label }}</div>
+                        {% endfor %}
+                        
+                        {% for day_data in calendar_days %}
+                            <div class="day p-2 rounded-lg cursor-pointer transition-all duration-200
+                                        {% if day_data.is_padding %} opacity-40 text-gray-400 dark:text-gray-500{% endif %}
+                                        {% if not day_data.is_padding %} text-gray-700 dark:text-gray-200{% endif %}
+                                        {% if day_data.is_today %} bg-primary text-white font-bold dark:bg-primary dark:text-white{% endif %}
+                                        {% if day_data.has_record and not day_data.is_padding %} relative after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:transform after:-translate-x-1/2 after:w-1 after:h-1 after:bg-accent after:rounded-full{% endif %}
+                                        hover:bg-gray-100 dark:hover:bg-gray-700"
+                                 {% if not day_data.is_padding %}
+                                     data-full-date="{{ day_data.full_date }}"
+                                 {% endif %}>
+                                {{ day_data.day }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 学習記録フォーム -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">学習記録</h2>
+                    
+                    <form method="POST" action="{{ url_for('add_record') }}">
+                        <input type="hidden" id="study_date_input" name="study_date" value="">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="study_subject" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">科目</label>
+                                <select id="study_subject" name="study_subject" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required>
+                                    <option value="">選択してください</option>
+                                    {% for subject in custom_subjects %}
+                                    <option value="{{ subject }}">{{ subject }}</option>
+                                    {% endfor %}
+                                    <option value="その他">その他</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label for="study_difficulty" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">難易度</label>
+                                <input type="number" id="study_difficulty" name="study_difficulty" min="1" max="5" value="3" 
+                                       class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="study_content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">学習内容（復習ポイント）</label>
+                            <textarea id="study_content" name="study_content" rows="3" 
+                                      class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                      placeholder="例: 三次関数の極値計算、動名詞の慣用表現" required></textarea>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="study_time_minutes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">学習時間 (分)</label>
+                            <input type="number" id="study_time_minutes" name="study_time_minutes" min="1" value="30" 
+                                   class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required>
+                        </div>
+                        
+                        <button type="submit" 
+                                class="w-full bg-primary hover:bg-secondary text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg">
+                            <i class="ph-bold ph-plus-circle mr-2"></i>記録する
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('study_date_input');
+            const days = document.querySelectorAll('.day:not(.opacity-40)');
+
+            function updateSelectedDateStyle(element) {
+                document.querySelectorAll('.day').forEach(d => {
+                    d.classList.remove('bg-secondary', 'text-white', 'dark:bg-secondary');
+                });
+                element.classList.add('bg-secondary', 'text-white', 'dark:bg-secondary');
+                dateInput.value = element.getAttribute('data-full-date');
+            }
+
+            days.forEach(dayElement => {
+                dayElement.addEventListener('click', function() {
+                    updateSelectedDateStyle(this);
+                });
+            });
+
+            const todayElement = document.querySelector('.day.bg-primary');
+            if (todayElement && !dateInput.value) {
+                dateInput.value = todayElement.getAttribute('data-full-date');
+                todayElement.classList.add('bg-secondary', 'text-white', 'dark:bg-secondary');
+            }
+        });
+    </script>
+
+    <!-- ダークモード設定の読み込み -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            const html = document.documentElement;
+            
+            if (isDarkMode) {
+                html.classList.add('dark');
+            }
+        });
+    </script>
+</body>
+</html>

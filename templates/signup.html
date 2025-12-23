@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新規登録 | テス勉お助け！</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4CAF50',
+                        'secondary': '#8BC34A',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- アイコンライブラリ -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <h1 class="text-3xl font-bold text-primary text-center mb-2 flex items-center justify-center">
+            <i class="ph-bold ph-user-plus mr-3"></i>新規登録
+        </h1>
+        <p class="text-gray-600 text-center mb-8">新しいアカウントを作成</p>
+
+        <form method="POST" action="{{ url_for('signup') }}">
+            <!-- Flashメッセージ表示部分を追加 -->
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                  {% for message in messages %}{{ message }}{% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+            
+            <div class="space-y-4">
+                <!-- 修正箇所: name="username" を追加 -->
+                <input type="text" name="username" placeholder="ユーザー名" 
+                       class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+                
+                <!-- 修正箇所: name="password" を追加 -->
+                <input type="password" name="password" placeholder="パスワード (6文字以上)" 
+                       class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+                
+                <button type="submit" 
+                        class="w-full bg-primary hover:bg-secondary text-white font-bold py-4 px-6 rounded-lg transition duration-300 transform hover:scale-105">
+                    登録して次へ
+                </button>
+            </div>
+        </form>
+
+        <p class="text-center text-gray-600 mt-6">
+            すでにアカウントをお持ちですか？ 
+            <a href="{{ url_for('login') }}" class="text-primary hover:text-secondary font-bold">ログイン</a>
+        </p>
+    </div>
+</body>
+</html>

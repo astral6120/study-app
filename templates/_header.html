@@ -1,0 +1,38 @@
+<!-- 共通ヘッダーテンプレート -->
+<header class="bg-primary text-white shadow-lg sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold">学習支援システム</h1>
+        <nav class="flex space-x-2 sm:space-x-4 text-sm sm:text-base items-center">
+            <!-- ホーム -->
+            <a href="{{ url_for('dashboard') }}" 
+               class="p-2 rounded transition duration-150 flex items-center {% if request.endpoint == 'dashboard' %}bg-accent text-primary font-extrabold shadow-md{% else %}hover:bg-white hover:bg-opacity-20{% endif %}">
+                <i class="ph-bold ph-calendar-blank text-lg mr-1"></i>ホーム
+            </a>
+            
+            <!-- 勉強記録・復習 -->
+            <a href="{{ url_for('records') }}" 
+               class="p-2 rounded transition duration-150 flex items-center {% if request.endpoint == 'records' %}bg-accent text-primary font-extrabold shadow-md{% else %}hover:bg-white hover:bg-opacity-20{% endif %}">
+                <i class="ph-bold ph-books text-lg mr-1"></i>勉強記録・復習
+            </a>
+            
+            <!-- フレンド -->
+            <a href="#" 
+                class="p-2 rounded transition duration-150 flex items-center hover:bg-white hover:bg-opacity-20 text-gray-300"
+                onclick="alert('フレンド機能は準備中です！'); return false;">
+                 <i class="ph-bold ph-users text-lg mr-1"></i>フレンド
+            </a>
+            
+            <!-- 設定 -->
+            <a href="{{ url_for('settings') }}" 
+               class="p-2 rounded transition duration-150 flex items-center {% if request.endpoint == 'settings' %}bg-accent text-primary font-extrabold shadow-md{% else %}hover:bg-white hover:bg-opacity-20{% endif %}">
+                <i class="ph-bold ph-gear text-lg mr-1"></i>設定
+            </a>
+            
+            <!-- ログアウト -->
+            <a href="{{ url_for('logout') }}" 
+               class="p-2 rounded hover:bg-white hover:bg-opacity-20 transition duration-150 flex items-center ml-4 border-l border-white border-opacity-30 pl-4">
+                <i class="ph-bold ph-sign-out text-lg mr-1"></i>ログアウト
+            </a>
+        </nav>
+    </div>
+</header>

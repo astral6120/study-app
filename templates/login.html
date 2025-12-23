@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン | 学習サポート</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4CAF50',
+                        'secondary': '#8BC34A',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- アイコンライブラリ -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <h1 class="text-3xl font-bold text-primary text-center mb-2 flex items-center justify-center">
+            <i class="ph-bold ph-graduation-cap mr-3"></i>学習サポート
+        </h1>
+        <p class="text-gray-600 text-center mb-8">学習記録アプリへようこそ</p>
+
+        <!-- 修正箇所: action="/login" → action="{{ url_for('login') }}" -->
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="space-y-4">
+                <input type="text" name="username" placeholder="ユーザー名" 
+                       class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+                
+                <input type="password" name="password" placeholder="パスワード" 
+                       class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+                
+                {% if error %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    {{ error }}
+                </div>
+                {% endif %}
+                
+                <button type="submit" 
+                        class="w-full bg-primary hover:bg-secondary text-white font-bold py-4 px-6 rounded-lg transition duration-300 transform hover:scale-105">
+                    ログイン
+                </button>
+            </div>
+        </form>
+
+        <p class="text-center text-gray-600 mt-6">
+            アカウントをお持ちでないですか？ 
+            <a href="/signup" class="text-primary hover:text-secondary font-bold">新規登録</a>
+        </p>
+        
+        <p class="text-center text-gray-400 text-sm mt-8">
+            テスト中：任意の情報を入力
+        </p>
+    </div>
+</body>
+</html>

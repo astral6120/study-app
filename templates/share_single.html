@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学習記録を共有 | テス勉お助け！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 公開ページ表示時のみヘッダーを表示 -->
+    {% if is_public %}
+        <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-4 m-4">
+            <div class="flex items-center">
+                <i class="ph-bold ph-globe mr-2"></i>
+                <span>公開ページ：誰でも閲覧できます</span>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="max-w-2xl mx-auto p-6">
+        <!-- ヘッダー -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-green-600 mb-2">学習記録を共有</h1>
+            <p class="text-gray-600">{{ user.username }}さんの学習記録</p>
+        </div>
+
+        <!-- 学習記録カード -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-full bg-cover bg-center border-2 border-green-500"
+                         style="background-image: url('{{ AVATAR_OPTIONS.get(user.avatar, AVATAR_OPTIONS.default_cat) }}');"></div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">{{ user.username }}</h2>
+                        <p class="text-sm text-gray-500">レベル {{ user.level }}</p>
+                    </div>
+                </div>
+                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">
+                    {{ record.study_date }}
+                </span>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="font-medium text-gray-700">科目:</span>
+                    <span class="text-gray-900">{{ record.subject }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium text-gray-700">学習時間:</span>
+                    <span class="text-gray-900">{{ record.learning_time }}分</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium text-gray-700">難易度:</span>
+                    <span class="text-gray-900">{{ record.difficulty }}/5</span>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">学習内容:</span>
+                    <p class="text-gray-900 mt-1 bg-gray-50 p-3 rounded-lg">{{ record.content }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- QRコードセクション（後で実装） -->
+        <div class="bg-white rounded-xl shadow-lg p-6 text-center mb-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">QRコードで共有</h3>
+            <div class="bg-gray-100 p-8 rounded-lg mb-4">
+                <p class="text-gray-500">QRコード機能は近日実装予定</p>
+            </div>
+            
+            <!-- 共有リンク -->
+            <div class="bg-gray-50 p-3 rounded-lg mb-4">
+                <p class="text-xs text-gray-500 mb-1">共有リンク:</p>
+                <p class="text-sm text-blue-600 break-all">{{ share_url }}</p>
+            </div>
+
+            <button onclick="copyToClipboard('{{ share_url }}')" 
+                    class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                <i class="ph-bold ph-copy mr-2"></i>リンクをコピー
+            </button>
+        </div>
+
+        <!-- アクションボタン -->
+        <div class="text-center mt-6 space-x-4">
+            <!-- 非公開ページの場合のみ画像共有ボタンを表示 -->
+            {% if not is_public %}
+            <a href="{{ url_for('share_single_image', record_id=record.id) }}" 
+               class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition duration-200">
+                <i class="ph-bold ph-image mr-2"></i>画像で共有
+            </a>
+            {% endif %}
+            
+            <!-- 戻るボタン：非公開ページならトップページに、公開ページならrecordsに -->
+            {% if not is_public %}
+            <a href="{{ url_for('records') }}" 
+               class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-200">
+                <i class="ph-bold ph-arrow-left mr-2"></i>戻る
+            </a>
+            {% else %}
+            <a href="{{ url_for('login') }}" 
+               class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition duration-200">
+                <i class="ph-bold ph-graduation-cap mr-2"></i>アプリに参加する
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('リンクをコピーしました！');
+            }, function(err) {
+                console.error('コピーに失敗しました: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

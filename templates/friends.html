@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フレンドリスト | テス勉お助け！</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4CAF50',
+                        'secondary': '#8BC34A',
+                        'accent': '#FFC107',
+                        'danger': '#F44336',
+                        'background': '#f4f4f4',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- アイコンライブラリ -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-background min-h-screen dark:bg-gray-900 transition-colors duration-300">
+    <!-- 共通ヘッダーのインクルード -->
+    {% include '_header.html' %}
+
+    <main class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        <h2 class="text-3xl font-extrabold text-gray-800 dark:text-white mb-6 border-b-2 border-primary pb-2 flex items-center">
+            <i class="ph-bold ph-users-three text-3xl mr-3 text-primary"></i>
+            フレンドリスト
+        </h2>
+
+        <p class="text-gray-600 dark:text-gray-400 mb-8 text-center">フレンドの学習状況をチェックしてモチベーションを維持しましょう</p>
+
+        <!-- 友達追加セクション -->
+        <div class="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-xl p-6 mb-8">
+            <h3 class="text-xl font-bold text-green-800 dark:text-green-200 mb-4 flex items-center">
+                <i class="ph-bold ph-user-plus text-2xl mr-2"></i>
+                友達を追加
+            </h3>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input type="text" placeholder="ユーザーIDを入力" 
+                       class="flex-1 p-3 border border-green-300 dark:border-green-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                <button class="bg-primary hover:bg-secondary text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+                    <i class="ph-bold ph-magnifying-glass mr-2"></i>検索/追加
+                </button>
+            </div>
+        </div>
+
+        <!-- フレンドリスト -->
+        <div class="space-y-4">
+            {% for friend in friends %}
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <!-- 修正: 直接DiceBear URLを使用 -->
+                            <div class="w-16 h-16 rounded-full bg-cover bg-center border-2 border-primary"
+                                 style="background-image: url('{{ avatar_options.get(friend.avatar_id, avatar_options.default_cat) }}');"></div>
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-800 dark:text-white">{{ friend.username }}</h4>
+                                <p class="text-gray-600 dark:text-gray-400">レベル {{ friend.level }}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    <i class="ph-bold ph-clock mr-1"></i>最終活動: {{ friend.last_activity }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="text-right min-w-32">
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">次のレベルまで {{ friend.xp_to_next }} XP</p>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                                {% set max_xp = 300 %}
+                                {% set current_xp = max_xp - friend.xp_to_next %}
+                                {% set progress_percent = (current_xp / max_xp) * 100 %}
+                                <div class="bg-primary h-3 rounded-full transition-all duration-500" 
+                                     style="width: {{ progress_percent | int }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <!-- ダークモード設定の読み込み -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            const html = document.documentElement;
+            
+            if (isDarkMode) {
+                html.classList.add('dark');
+            }
+        });
+    </script>
+</body>
+</html>

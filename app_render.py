@@ -6,7 +6,7 @@ import werkzeug.urls
 if not hasattr(werkzeug.urls, 'url_decode'):
     try:
         from werkzeug.datastructures import MultiDict
-        from urllib.parse import parse_qs
+        from urllib.parse import parse_qs, urlencode
         
         def url_decode(s, charset='utf-8', decode_keys=False, decode_values=False,
                       errors='replace', separator='&', cls=None):
@@ -20,8 +20,36 @@ if not hasattr(werkzeug.urls, 'url_decode'):
         werkzeug.urls.url_decode = url_decode
         print("Applied url_decode patch for Werkzeug compatibility")
     except ImportError as e:
-        print(f"Patch failed: {e}")
+        print(f"url_decode patch failed: {e}")
         sys.exit(1)
+
+# url_encodeがなければ作成
+if not hasattr(werkzeug.urls, 'url_encode'):
+    try:
+        from werkzeug.datastructures import MultiDict
+        from urllib.parse import urlencode as urllib_urlencode
+        
+        def url_encode(obj, charset='utf-8', encode_keys=False, sort=False, key=None,
+                      separator=b'&'):
+            """互換性のためのurl_encode実装"""
+            if isinstance(obj, MultiDict):
+                items = obj.items(multi=True)
+            elif isinstance(obj, dict):
+                items = obj.items()
+            else:
+                items = list(obj)
+            
+            if sort:
+                items = sorted(items, key=key)
+            
+            return urllib_urlencode(items, doseq=True, encoding=charset)
+        
+        werkzeug.urls.url_encode = url_encode
+        print("Applied url_encode patch for Werkzeug compatibility")
+    except ImportError as e:
+        print(f"url_encode patch failed: {e}")
+        sys.exit(1)
+        
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from datetime import datetime, timezone, timedelta, date

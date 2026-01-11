@@ -1,3 +1,27 @@
+# === 互換性パッチ（このコードを一番最初に追加）===
+import sys
+import werkzeug.urls
+
+# url_decodeがなければ作成
+if not hasattr(werkzeug.urls, 'url_decode'):
+    try:
+        from werkzeug.datastructures import MultiDict
+        from urllib.parse import parse_qs
+        
+        def url_decode(s, charset='utf-8', decode_keys=False, decode_values=False,
+                      errors='replace', separator='&', cls=None):
+            """互換性のためのurl_decode実装"""
+            result = parse_qs(s, keep_blank_values=True, encoding=charset, errors=errors,
+                           separator=separator)
+            if cls is None:
+                cls = MultiDict
+            return cls((k, v[0] if len(v) == 1 else v) for k, v in result.items())
+        
+        werkzeug.urls.url_decode = url_decode
+        print("Applied url_decode patch for Werkzeug compatibility")
+    except ImportError as e:
+        print(f"Patch failed: {e}")
+        sys.exit(1)
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from datetime import datetime, timezone, timedelta, date

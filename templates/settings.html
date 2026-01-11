@@ -149,7 +149,11 @@
                         <div>
                             <h4 class="font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
                                 <i class="ph-bold ph-list-checks text-xl mr-2 text-primary"></i>
-                                登録されている教科 ({{ custom_subjects|length }}/10)
+                                登録されている教科 (全{{ custom_subjects|length }}個)
+                                <span class="text-sm font-normal ml-2 text-gray-500">
+                                    (基本: {{ custom_subjects|select('in', ['数学', '英語', '国語', '理科', '社会', 'プログラミング'])|list|length }}/6, 
+                                    カスタム: {{ custom_subjects|reject('in', ['数学', '英語', '国語', '理科', '社会', 'プログラミング'])|list|length }}/10)
+                                </span>
                             </h4>
                             
                             {% if custom_subjects %}
@@ -158,17 +162,18 @@
                                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                                     <div class="flex items-center justify-between">
                                         <span class="text-gray-800 dark:text-gray-200 font-medium">{{ subject }}</span>
-                                        {% if subject not in ['数学', '英語', '国語', '理科', '社会', 'プログラミング'] %}
+                                        <!-- 基本教科でも削除可能にするが、教科が1つしかない場合は削除不可 -->
+                                        {% if custom_subjects|length > 1 %}
                                         <form action="{{ url_for('delete_subject') }}" method="POST" class="ml-2">
                                             <input type="hidden" name="subject_to_delete" value="{{ subject }}">
                                             <button type="submit" 
                                                     class="text-red-500 hover:text-red-700 transition duration-200 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900"
-                                                    onclick="return confirm('「{{ subject }}」を削除してもよろしいですか？\nこの教科に関連する学習記録は「その他」として表示されます。')">
+                                                    onclick="return confirm('「{{ subject }}」を削除してもよろしいですか？')">
                                                 <i class="ph-bold ph-x"></i>
                                             </button>
                                         </form>
                                         {% else %}
-                                        <span class="text-xs text-gray-500 ml-2">基本</span>
+                                        <span class="text-xs text-gray-500 ml-2" title="最低1つの教科は必要です">必須</span>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -185,14 +190,21 @@
                         <div>
                             <h4 class="font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
                                 <i class="ph-bold ph-plus-circle text-xl mr-2 text-primary"></i>
-                                新しい教科を追加
+                                新しいカスタム教科を追加
                             </h4>
                             
-                            {% if custom_subjects|length >= 10 %}
+                            <!-- 現在のカスタム教科数を取得するための計算 -->
+                            {% set basic_subjects_list = ['数学', '英語', '国語', '理科', '社会', 'プログラミング'] %}
+                            {% set custom_count = custom_subjects|reject('in', basic_subjects_list)|list|length %}
+                            
+                            {% if custom_count >= 10 %}
                             <div class="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-4">
                                 <p class="text-yellow-800 dark:text-yellow-200 flex items-center">
                                     <i class="ph-bold ph-warning-circle mr-2"></i>
-                                    教科は最大10個まで登録できます
+                                    カスタム教科は最大10個まで登録できます
+                                </p>
+                                <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-2">
+                                    基本教科を削除すると、表示される教科数を減らせます。
                                 </p>
                             </div>
                             {% else %}
@@ -205,14 +217,47 @@
                                        required>
                                 <button type="submit" 
                                         class="bg-primary hover:bg-secondary text-white font-medium py-3 px-6 rounded-lg transition duration-200">
-                                    <i class="ph-bold ph-plus mr-2"></i>追加
+                                    <i class="ph-bold ph-plus mr-2"></i>追加 ({{ custom_count }}/10)
                                 </button>
                             </form>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                                ※ 基本教科（数学、英語、国語、理科、社会、プログラミング）は削除できません
+                                ※ 基本教科を削除すると、表示される教科数を減らせます
+                                ※ 現在の空き枠: {{ 10 - custom_count }}個
                             </p>
                             {% endif %}
                         </div>
+
+                        <!-- 基本教科の復元セクション（削除された基本教科がある場合） -->
+                        {% set hidden_basic_subjects = [] %}
+                        {% for basic_subject in ['数学', '英語', '国語', '理科', '社会', 'プログラミング'] %}
+                            {% if basic_subject not in custom_subjects %}
+                                {% set _ = hidden_basic_subjects.append(basic_subject) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if hidden_basic_subjects %}
+                        <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                            <h5 class="font-bold text-blue-800 dark:text-blue-200 mb-3 flex items-center">
+                                <i class="ph-bold ph-arrow-clockwise text-lg mr-2"></i>
+                                削除された基本教科を復元
+                            </h5>
+                            <p class="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                                以下の基本教科は削除されています。必要に応じて復元できます。
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                {% for subject in hidden_basic_subjects %}
+                                <form action="{{ url_for('restore_subject') }}" method="POST" class="inline">
+                                    <input type="hidden" name="subject_to_restore" value="{{ subject }}">
+                                    <button type="submit" 
+                                            class="bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-lg text-sm transition duration-200 flex items-center">
+                                        <i class="ph-bold ph-plus-circle mr-1 text-xs"></i>
+                                        {{ subject }}
+                                    </button>
+                                </form>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <!-- 注意事項 -->
                         <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
@@ -221,9 +266,12 @@
                                 ご注意
                             </h5>
                             <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                                <li>・教科は最大10個まで登録できます</li>
+                                <li>・基本教科: 6個（削除可能、後で復元可）</li>
+                                <li>・カスタム教科: 最大10個まで追加可能</li>
+                                <li>・基本教科を削除すると、表示される教科数を減らせます</li>
+                                <li>・合計で最大16個（基本6 + カスタム10）の教科を登録可能</li>
+                                <li>・最低1つの教科は常に必要です</li>
                                 <li>・削除した教科に関連する学習記録は「その他」として表示されます</li>
-                                <li>・基本教科は削除できません</li>
                                 <li>・教科名は20文字以内で入力してください</li>
                             </ul>
                         </div>

@@ -87,6 +87,9 @@ AVATAR_OPTIONS = {
     '笑顔': 'https://api.dicebear.com/7.x/avataaars/svg?seed=koala'
 }
 
+# 基本科目
+DEFAULT_SUBJECTS = ['数学', '英語', '国語', '理科', '社会', 'プログラミング']
+
 # ダミーユーザークラス（データベースなし）
 class DummyUser(UserMixin):
     def __init__(self, user_id, username, level=1, xp=0, avatar='default_cat'):
@@ -120,12 +123,20 @@ class DummyDataStore:
     def __init__(self):
         self.users = {}
         self.records = {}
+        self.subjects = {}  # 教科データを追加
         self.next_user_id = 1
         self.next_record_id = 1
         
         # デフォルトテストユーザー
         self.add_user('test', 'test123', level=5, xp=350, avatar='cat')
         self.add_user('admin', 'debug123', level=1, xp=0, avatar='default_cat')
+        
+        # 教科データを初期化
+        self.subjects = {
+            # user_id: [subject1, subject2, ...]
+            1: ['物理', '化学', '歴史'],  # テストユーザー
+            2: [],  # 管理者（カスタム教科なし）
+        }
     
     def add_user(self, username, password, level=1, xp=0, avatar='default_cat'):
         user_id = self.next_user_id
@@ -144,6 +155,39 @@ class DummyDataStore:
     
     def get_user_by_id(self, user_id):
         return self.users.get(user_id)
+    
+    def get_user_subjects(self, user_id):
+        """ユーザーの教科リストを取得"""
+        basic_subjects = DEFAULT_SUBJECTS
+        custom_subjects = self.subjects.get(user_id, [])
+        return basic_subjects + custom_subjects
+    
+    def add_user_subject(self, user_id, subject):
+        """ユーザーに新しい教科を追加"""
+        if user_id not in self.subjects:
+            self.subjects[user_id] = []
+        
+        # 重複チェック
+        if subject in self.get_user_subjects(user_id):
+            return False
+        
+        # 最大数チェック
+        if len(self.get_user_subjects(user_id)) >= 10:
+            return False
+        
+        self.subjects[user_id].append(subject)
+        return True
+    
+    def delete_user_subject(self, user_id, subject):
+        """ユーザーから教科を削除"""
+        # 基本教科は削除不可
+        if subject in DEFAULT_SUBJECTS:
+            return False
+        
+        if user_id in self.subjects and subject in self.subjects[user_id]:
+            self.subjects[user_id].remove(subject)
+            return True
+        return False
     
     def add_record(self, user_id, subject, content, difficulty=3, learning_time=30):
         record_id = self.next_record_id
@@ -181,12 +225,9 @@ def load_user(user_id):
     """ユーザーローダー（ダミーデータ用）"""
     return dummy_store.get_user_by_id(int(user_id))
 
-# 基本科目
-DEFAULT_SUBJECTS = ['数学', '英語', '国語', '理科', '社会', 'プログラミング']
-
 def get_user_custom_subjects(user_id):
-    """ユーザーのカスタム科目リスト（ダミー）"""
-    return DEFAULT_SUBJECTS
+    """ユーザーのカスタム科目リスト（ダミーデータストアを使用）"""
+    return dummy_store.get_user_subjects(user_id)
 
 def add_xp_and_check_level_up(user, xp_to_add, reason=""):
     """XP追加とレベルアップチェック（ダミー）"""
@@ -505,6 +546,69 @@ def update_username():
     else:
         current_user.username = new_username
         flash('ユーザー名を更新しました！', 'success')
+    
+    return redirect(url_for('settings'))
+
+# ========================
+# 教科管理エンドポイント
+# ========================
+
+@app.route('/add_subject', methods=['POST'])
+@login_required
+def add_subject():
+    """新しい教科を追加"""
+    new_subject = request.form.get('new_subject', '').strip()
+    
+    if not new_subject:
+        flash('教科名を入力してください', 'error')
+        return redirect(url_for('settings'))
+    
+    # 既存の教科リストを取得
+    custom_subjects = get_user_custom_subjects(current_user.id)
+    
+    # バリデーション
+    if new_subject in custom_subjects:
+        flash('この教科は既に登録されています', 'error')
+        return redirect(url_for('settings'))
+    
+    if len(new_subject) > 20:
+        flash('教科名は20文字以内で入力してください', 'error')
+        return redirect(url_for('settings'))
+    
+    if len(custom_subjects) >= 10:
+        flash('教科は最大10個まで登録できます', 'error')
+        return redirect(url_for('settings'))
+    
+    # 教科を追加
+    if dummy_store.add_user_subject(current_user.id, new_subject):
+        flash(f'「{new_subject}」を教科に追加しました', 'success')
+    else:
+        flash('教科の追加に失敗しました', 'error')
+    
+    return redirect(url_for('settings'))
+
+@app.route('/delete_subject', methods=['POST'])
+@login_required
+def delete_subject():
+    """教科を削除"""
+    subject_to_delete = request.form.get('subject_to_delete', '').strip()
+    
+    if not subject_to_delete:
+        flash('削除する教科を選択してください', 'error')
+        return redirect(url_for('settings'))
+    
+    # 基本教科は削除不可
+    BASIC_SUBJECTS = DEFAULT_SUBJECTS
+    
+    if subject_to_delete in BASIC_SUBJECTS:
+        flash('基本教科は削除できません', 'error')
+        return redirect(url_for('settings'))
+    
+    # 教科を削除
+    if dummy_store.delete_user_subject(current_user.id, subject_to_delete):
+        flash(f'「{subject_to_delete}」を教科から削除しました', 'success')
+    else:
+        flash('教科の削除に失敗しました', 'error')
     
     return redirect(url_for('settings'))
 

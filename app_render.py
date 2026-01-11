@@ -158,9 +158,18 @@ class DummyDataStore:
     
     def get_user_subjects(self, user_id):
         """ユーザーの教科リストを取得"""
-        basic_subjects = DEFAULT_SUBJECTS
+        # 非表示リストから除外する基本教科を取得
+        hidden = []
+        if hasattr(self, 'hidden_subjects') and user_id in self.hidden_subjects:
+            hidden = self.hidden_subjects[user_id]
+        
+        # 非表示でない基本教科だけをフィルタリング
+        visible_basic_subjects = [s for s in DEFAULT_SUBJECTS if s not in hidden]
+        
+        # ユーザーのカスタム教科を追加
         custom_subjects = self.subjects.get(user_id, [])
-        return basic_subjects + custom_subjects
+        
+        return visible_basic_subjects + custom_subjects
     
     def add_user_subject(self, user_id, subject):
         """ユーザーに新しい教科を追加"""
@@ -171,8 +180,11 @@ class DummyDataStore:
         if subject in self.get_user_subjects(user_id):
             return False
         
-        # 最大数チェック
-        if len(self.get_user_subjects(user_id)) >= 10:
+        # 現在のカスタム教科数を取得（基本教科は含めない）
+        current_custom_count = len(self.subjects.get(user_id, []))
+        
+        # カスタム教科の最大数は10個（基本教科とは別）
+        if current_custom_count >= 10:
             return False
         
         self.subjects[user_id].append(subject)
@@ -180,13 +192,30 @@ class DummyDataStore:
     
     def delete_user_subject(self, user_id, subject):
         """ユーザーから教科を削除"""
-        # 基本教科は削除不可
-        if subject in DEFAULT_SUBJECTS:
+        # 現在の教科リストを取得
+        current_subjects = self.get_user_subjects(user_id)
+        
+        # 教科が1つしかない場合は削除不可
+        if len(current_subjects) <= 1:
             return False
         
-        if user_id in self.subjects and subject in self.subjects[user_id]:
-            self.subjects[user_id].remove(subject)
-            return True
+        # 基本教科でも削除可能にするが、最低1つの教科は残す
+        if user_id in self.subjects:
+            # カスタム教科の場合
+            if subject in self.subjects[user_id]:
+                self.subjects[user_id].remove(subject)
+                return True
+            # 基本教科の場合（デフォルトリストから削除するのではなく、ユーザーの非表示リストに追加）
+            elif subject in DEFAULT_SUBJECTS:
+                # 非表示リストを作成（初めての場合）
+                if not hasattr(self, 'hidden_subjects'):
+                    self.hidden_subjects = {}
+                if user_id not in self.hidden_subjects:
+                    self.hidden_subjects[user_id] = []
+                # 基本教科を非表示リストに追加
+                if subject not in self.hidden_subjects[user_id]:
+                    self.hidden_subjects[user_id].append(subject)
+                return True
         return False
     
     def add_record(self, user_id, subject, content, difficulty=3, learning_time=30):
@@ -575,8 +604,12 @@ def add_subject():
         flash('教科名は20文字以内で入力してください', 'error')
         return redirect(url_for('settings'))
     
-    if len(custom_subjects) >= 10:
-        flash('教科は最大10個まで登録できます', 'error')
+    # 現在のカスタム教科数を取得（基本教科は含めない）
+    user_custom_count = len(dummy_store.subjects.get(current_user.id, []))
+    
+    # カスタム教科の最大数は10個
+    if user_custom_count >= 10:
+        flash('カスタム教科は最大10個まで登録できます', 'error')
         return redirect(url_for('settings'))
     
     # 教科を追加
@@ -597,11 +630,11 @@ def delete_subject():
         flash('削除する教科を選択してください', 'error')
         return redirect(url_for('settings'))
     
-    # 基本教科は削除不可
-    BASIC_SUBJECTS = DEFAULT_SUBJECTS
+    # 現在の教科数を確認
+    current_subjects = get_user_custom_subjects(current_user.id)
     
-    if subject_to_delete in BASIC_SUBJECTS:
-        flash('基本教科は削除できません', 'error')
+    if len(current_subjects) <= 1:
+        flash('最低1つの教科は必要です。教科を削除できません。', 'error')
         return redirect(url_for('settings'))
     
     # 教科を削除
@@ -609,6 +642,33 @@ def delete_subject():
         flash(f'「{subject_to_delete}」を教科から削除しました', 'success')
     else:
         flash('教科の削除に失敗しました', 'error')
+    
+    return redirect(url_for('settings'))
+
+@app.route('/restore_subject', methods=['POST'])
+@login_required
+def restore_subject():
+    """削除された基本教科を復元"""
+    subject_to_restore = request.form.get('subject_to_restore', '').strip()
+    
+    if not subject_to_restore:
+        flash('復元する教科を選択してください', 'error')
+        return redirect(url_for('settings'))
+    
+    # 基本教科のみ復元可能
+    if subject_to_restore not in DEFAULT_SUBJECTS:
+        flash('基本教科のみ復元可能です', 'error')
+        return redirect(url_for('settings'))
+    
+    # 非表示リストから削除して復元
+    if hasattr(dummy_store, 'hidden_subjects') and current_user.id in dummy_store.hidden_subjects:
+        if subject_to_restore in dummy_store.hidden_subjects[current_user.id]:
+            dummy_store.hidden_subjects[current_user.id].remove(subject_to_restore)
+            flash(f'「{subject_to_restore}」を基本教科に復元しました', 'success')
+        else:
+            flash('この教科は削除されていません', 'error')
+    else:
+        flash('この教科は削除されていません', 'error')
     
     return redirect(url_for('settings'))
 
